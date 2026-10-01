@@ -1,0 +1,20 @@
+{
+    "name": "RAXY.Notification.Editor",
+    "rootNamespace": "RAXY.Notification.Editor",
+    "references": [
+        "RAXY.Notification",
+        "RAXY.Utility.Editor",
+        "Unity.ugui"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -1,0 +1,22 @@
+{
+  "name": "com.raxy.notification2",
+  "version": "1.0.0",
+  "displayName": "RAXY Notification 2",
+  "description": "Prefab-based notification manager with per-definition queues, fullscreen views, and a Project Hub generator.",
+  "unity": "6000.0",
+  "author": {
+    "name": "RobyRAX",
+    "url": "https://github.com/RobyRAX"
+  },
+  "dependencies": {
+    "com.raxy.utility": "1.0.0",
+    "com.unity.ugui": "2.0.0"
+  },
+  "samples": [
+    {
+      "displayName": "Notification Demo",
+      "description": "Get Item and Unlock Item notifications, manager prefab, and a demo scene.",
+      "path": "Samples~/Notification Demo"
+    }
+  ]
+}
