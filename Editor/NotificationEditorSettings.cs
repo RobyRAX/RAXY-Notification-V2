@@ -23,6 +23,10 @@ namespace RAXY.Notification.Editor
 
         public bool locked;
 
+        public string requestScriptPath = string.Empty;
+
+        public string viewScriptPath = string.Empty;
+
         public List<NotificationFieldDefinition> fields = new();
     }
 
@@ -40,6 +44,9 @@ namespace RAXY.Notification.Editor
 
         [SerializeField]
         string activePrefabGuid = string.Empty;
+
+        [SerializeField]
+        string notificationIdScriptPath = string.Empty;
 
         [SerializeField]
         List<NotificationEntry> entries = new();
@@ -64,6 +71,12 @@ namespace RAXY.Notification.Editor
         {
             get => activePrefabGuid ?? string.Empty;
             set => activePrefabGuid = value ?? string.Empty;
+        }
+
+        public string NotificationIdScriptPath
+        {
+            get => notificationIdScriptPath ?? string.Empty;
+            set => notificationIdScriptPath = value ?? string.Empty;
         }
 
         public List<NotificationEntry> Entries

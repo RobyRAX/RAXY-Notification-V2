@@ -37,6 +37,8 @@ namespace RAXY.Notification.Editor
                 _scroll = EditorGUILayout.BeginScrollView(_scroll, GUILayout.ExpandHeight(true));
                 DrawManagerSection();
                 EditorGUILayout.Space(10f);
+                DrawNotificationIdSection();
+                EditorGUILayout.Space(10f);
                 DrawEntriesSection();
                 EditorGUILayout.EndScrollView();
             }
@@ -108,6 +110,92 @@ namespace RAXY.Notification.Editor
             RaxyHubGui.EndCard();
         }
 
+        void DrawNotificationIdSection()
+        {
+            var settings = NotificationEditorSettings.instance;
+            TryAutoResolveNotificationIdPath(settings);
+
+            RaxyHubGui.BeginCard();
+            EditorGUILayout.LabelField("Notification Id", EditorStyles.boldLabel);
+
+            var path = settings.NotificationIdScriptPath;
+            var pathValid = NotificationIdScriptExists(path);
+            if (pathValid)
+            {
+                RaxyHubGui.DrawStatusBanner(true, "Script found", path);
+                using (new EditorGUI.DisabledScope(true))
+                    EditorGUILayout.TextField("Script", path);
+            }
+            else
+            {
+                RaxyHubGui.DrawStatusBanner(
+                    false,
+                    "Not found in project",
+                    "Generate C# will create NotificationId.cs in " + settings.GeneratedFolder + ".");
+            }
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                using (new EditorGUI.DisabledScope(!pathValid))
+                {
+                    if (RaxyHubGui.SecondaryButton("Ping", 80f))
+                        PingNotificationIdScript(path);
+                }
+
+                if (RaxyHubGui.SecondaryButton("Refresh", 80f))
+                    RefreshNotificationIdPath();
+            }
+
+            RaxyHubGui.EndCard();
+        }
+
+        static void TryAutoResolveNotificationIdPath(NotificationEditorSettings settings)
+        {
+            if (NotificationIdScriptExists(settings.NotificationIdScriptPath))
+                return;
+
+            if (!NotificationScriptPaths.TryGetNotificationIdScriptPath(settings.GeneratedNamespace, out var foundPath))
+                return;
+
+            if (string.Equals(settings.NotificationIdScriptPath, foundPath, StringComparison.Ordinal))
+                return;
+
+            settings.NotificationIdScriptPath = foundPath;
+            settings.SaveSettings();
+        }
+
+        static void RefreshNotificationIdPath()
+        {
+            var settings = NotificationEditorSettings.instance;
+            if (NotificationScriptPaths.TryGetNotificationIdScriptPath(settings.GeneratedNamespace, out var foundPath))
+                settings.NotificationIdScriptPath = foundPath;
+            else
+                settings.NotificationIdScriptPath = string.Empty;
+
+            settings.SaveSettings();
+        }
+
+        static bool NotificationIdScriptExists(string assetPath)
+        {
+            if (string.IsNullOrWhiteSpace(assetPath))
+                return false;
+
+            var normalized = NotificationScriptPaths.NormalizeAssetPath(assetPath);
+            var projectRoot = Path.GetDirectoryName(Application.dataPath);
+            var absolute = Path.GetFullPath(Path.Combine(projectRoot, normalized));
+            return File.Exists(absolute);
+        }
+
+        static void PingNotificationIdScript(string assetPath)
+        {
+            var script = AssetDatabase.LoadAssetAtPath<MonoScript>(assetPath);
+            if (script == null)
+                return;
+
+            EditorGUIUtility.PingObject(script);
+            Selection.activeObject = script;
+        }
+
         void DrawEntriesSection()
         {
             var settings = NotificationEditorSettings.instance;
@@ -149,6 +237,8 @@ namespace RAXY.Notification.Editor
 
                     DrawBindings(entries[i]);
                 }
+
+                DrawScriptPaths(entries[i]);
 
                 using (new EditorGUILayout.HorizontalScope())
                 {
@@ -246,6 +336,12 @@ namespace RAXY.Notification.Editor
             foreach (var id in requests.Keys)
                 ids.Add(id);
 
+            if (string.IsNullOrWhiteSpace(settings.NotificationIdScriptPath) &&
+                NotificationScriptPaths.TryGetNotificationIdScriptPath(
+                    settings.GeneratedNamespace,
+                    out var notificationIdPath))
+                settings.NotificationIdScriptPath = notificationIdPath;
+
             var added = 0;
             foreach (var id in ids)
             {
@@ -253,16 +349,19 @@ namespace RAXY.Notification.Editor
                     continue;
 
                 views.TryGetValue(id, out var viewType);
+                requests.TryGetValue(id, out var requestType);
                 var entry = new NotificationEntry
                 {
                     id = id,
                     behaviour = viewType != null && typeof(FullscreenNotificationView).IsAssignableFrom(viewType)
                         ? NotificationBehaviour.Fullscreen
                         : NotificationBehaviour.NonFullscreen,
-                    locked = !IsGenerated(viewType ?? requests[id])
+                    locked = !NotificationScriptPaths.IsGenerated(viewType ?? requestType)
                 };
                 if (viewType != null)
                     entry.fields = ReadBindings(viewType);
+
+                NotificationScriptPaths.RefreshEntryPaths(entry, requestType, viewType);
 
                 settings.Entries.Add(entry);
                 added++;
@@ -352,24 +451,23 @@ namespace RAXY.Notification.Editor
             return bindings;
         }
 
-        static bool IsGenerated(Type type)
+        static void DrawScriptPaths(NotificationEntry entry)
         {
-            if (type == null)
-                return false;
+            if (entry == null)
+                return;
 
-            var guids = AssetDatabase.FindAssets(type.Name + " t:MonoScript");
-            for (var i = 0; i < guids.Length; i++)
+            var hasRequest = !string.IsNullOrWhiteSpace(entry.requestScriptPath);
+            var hasView = !string.IsNullOrWhiteSpace(entry.viewScriptPath);
+            if (!hasRequest && !hasView)
+                return;
+
+            using (new EditorGUI.DisabledScope(true))
             {
-                var path = AssetDatabase.GUIDToAssetPath(guids[i]);
-                var script = AssetDatabase.LoadAssetAtPath<MonoScript>(path);
-                if (script == null || script.GetClass() != type)
-                    continue;
-
-                var contents = File.ReadAllText(path);
-                return contents.Contains("generated by the Notification Framework");
+                if (hasRequest)
+                    EditorGUILayout.TextField("Request Script", entry.requestScriptPath);
+                if (hasView)
+                    EditorGUILayout.TextField("View Script", entry.viewScriptPath);
             }
-
-            return false;
         }
 
         static void GenerateClasses()

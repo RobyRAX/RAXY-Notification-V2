@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -13,6 +14,9 @@ namespace RAXY.Notification
         [SerializeField, FormerlySerializedAs("catalog")]
         List<NotificationDefinition> notificationDefinitions = new();
 
+        [TitleGroup("Runtime")]
+        [ShowInInspector]
+        [HideReferenceObjectPicker]
         readonly List<NotificationLane> lanes = new();
 
         readonly Dictionary<string, NotificationLane> lanesById = new();
@@ -347,15 +351,22 @@ namespace RAXY.Notification
 
             public NotificationDefinition Definition { get; }
 
+            [ShowInInspector]
+            string NotificationId => Definition.Id;
+
+            [ShowInInspector]
+            public float LastPresentedTime { get; set; } = -1f;
+
+            [ShowInInspector]
+            public bool Pumping { get; set; }
+
+            [ShowInInspector]
             public Queue<NotificationRequest> Queue { get; } = new();
 
+            [ShowInInspector]
             public List<LiveNotification> Live { get; } = new();
 
             public Coroutine Spacing { get; set; }
-
-            public float LastPresentedTime { get; set; } = -1f;
-
-            public bool Pumping { get; set; }
         }
 
         class LiveNotification
