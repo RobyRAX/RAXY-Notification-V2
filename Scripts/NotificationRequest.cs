@@ -7,6 +7,9 @@ namespace RAXY.Notification
         [ShowInInspector]
         public string DefinitionId { get; }
 
+        [ShowInInspector]
+        public string Tag { get; protected set; }
+
         protected NotificationRequest(string definitionId)
         {
             DefinitionId = definitionId;

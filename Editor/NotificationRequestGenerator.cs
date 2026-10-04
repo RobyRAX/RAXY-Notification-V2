@@ -11,13 +11,19 @@ namespace RAXY.Notification.Editor
     {
         public static bool TryGenerate(IReadOnlyList<NotificationEntry> entries, out string message)
         {
-            if (entries == null || entries.Count == 0)
+            var settings = NotificationEditorSettings.instance;
+            var tags = CollectTags(settings, out message);
+            if (tags == null)
+                return false;
+
+            if (entries == null)
+                entries = Array.Empty<NotificationEntry>();
+
+            if (entries.Count == 0 && tags.Count == 0)
             {
-                message = "Add at least one Notification Id.";
+                message = "Add at least one Notification Id or Tag.";
                 return false;
             }
-
-            var settings = NotificationEditorSettings.instance;
             var folder = NormalizeFolder(settings.GeneratedFolder);
             if (folder == null)
             {
@@ -79,18 +85,43 @@ namespace RAXY.Notification.Editor
                     out message))
                 return false;
 
-            WriteFile(idPath, BuildIdSource(namespaceName, ids));
-            settings.NotificationIdScriptPath = idPath;
+            if (entries != null && entries.Count > 0)
+            {
+                WriteFile(idPath, BuildIdSource(namespaceName, ids));
+                settings.NotificationIdScriptPath = idPath;
+            }
+
+            if (!NotificationScriptPaths.ResolveNotificationTagPath(
+                    settings.NotificationTagScriptPath,
+                    namespaceName,
+                    folder,
+                    out var tagPath,
+                    out message))
+                return false;
+
+            WriteFile(tagPath, BuildTagSource(namespaceName, tags));
+            settings.NotificationTagScriptPath = tagPath;
 
             var expected = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             AddExpectedInFolder(expected, folder, idPath);
+            AddExpectedInFolder(expected, folder, tagPath);
 
             for (var i = 0; i < lockedEntries.Count; i++)
                 AddLockedEntryExpected(lockedEntries[i], folder, expected);
 
             var replacedOutsideFolder = 0;
-            var writtenInFolder = NotificationScriptPaths.IsUnderFolder(idPath, folder) ? 1 : 0;
-            if (!NotificationScriptPaths.IsUnderFolder(idPath, folder))
+            var writtenInFolder = 0;
+            if (entries.Count > 0)
+            {
+                if (NotificationScriptPaths.IsUnderFolder(idPath, folder))
+                    writtenInFolder++;
+                else
+                    replacedOutsideFolder++;
+            }
+
+            if (NotificationScriptPaths.IsUnderFolder(tagPath, folder))
+                writtenInFolder++;
+            else
                 replacedOutsideFolder++;
 
             for (var i = 0; i < plans.Count; i++)
@@ -130,7 +161,7 @@ namespace RAXY.Notification.Editor
             AssetDatabase.Refresh();
 
             var builder = new StringBuilder();
-            builder.Append($"Updated NotificationId and generated {plans.Count} request class");
+            builder.Append($"Updated NotificationId, NotificationTag, and generated {plans.Count} request class");
             builder.Append(plans.Count == 1 ? "" : "es");
             builder.Append($", and {plans.Count} view class");
             builder.Append(plans.Count == 1 ? "" : "es");
@@ -169,6 +200,55 @@ namespace RAXY.Notification.Editor
 
             message = builder.ToString();
             return true;
+        }
+
+        static List<string> CollectTags(NotificationEditorSettings settings, out string message)
+        {
+            message = null;
+            var tags = new List<string>();
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            var source = settings.Tags;
+            for (var i = 0; i < source.Count; i++)
+            {
+                var tag = (source[i] ?? string.Empty).Trim();
+                if (string.IsNullOrEmpty(tag))
+                    continue;
+
+                if (!IsIdentifier(tag))
+                {
+                    message = $"Tag {i + 1} needs a valid C# identifier.";
+                    return null;
+                }
+
+                if (!seen.Add(tag))
+                {
+                    message = $"Tag '{tag}' is duplicated.";
+                    return null;
+                }
+
+                tags.Add(tag);
+            }
+
+            return tags;
+        }
+
+        static string BuildTagSource(string namespaceName, List<string> tags)
+        {
+            var builder = new StringBuilder();
+            AppendHeader(builder);
+            builder.Append("namespace ").Append(namespaceName).Append("\n{\n");
+            builder.Append("    public static class NotificationTag\n    {\n");
+            for (var i = 0; i < tags.Count; i++)
+            {
+                builder.Append("        public const string ");
+                builder.Append(tags[i]);
+                builder.Append(" = \"");
+                builder.Append(tags[i]);
+                builder.Append("\";\n");
+            }
+
+            builder.Append("    }\n}\n");
+            return builder.ToString();
         }
 
         static void AddExpectedInFolder(HashSet<string> expected, string folder, string assetPath)
@@ -249,7 +329,7 @@ namespace RAXY.Notification.Editor
             builder.Append("        public ").Append(entry.RequestClass).Append('(');
             if (entry.Fields.Count == 0)
             {
-                builder.Append(")\n");
+                builder.Append("string tag = null)\n");
             }
             else
             {
@@ -260,11 +340,10 @@ namespace RAXY.Notification.Editor
                     builder.Append(entry.Fields[i].TypeName);
                     builder.Append(' ');
                     builder.Append(entry.Fields[i].ParameterName);
-                    if (i < entry.Fields.Count - 1)
-                        builder.Append(',');
-                    builder.Append('\n');
+                    builder.Append(",\n");
                 }
 
+                builder.Append("            string tag = null\n");
                 builder.Append("        )\n");
             }
 
@@ -279,6 +358,7 @@ namespace RAXY.Notification.Editor
                 builder.Append(";\n");
             }
 
+            builder.Append("            Tag = tag;\n");
             builder.Append("        }\n");
             builder.Append("    }\n}\n");
             return builder.ToString();

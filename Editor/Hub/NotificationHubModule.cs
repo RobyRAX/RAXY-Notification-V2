@@ -39,6 +39,8 @@ namespace RAXY.Notification.Editor
                 EditorGUILayout.Space(10f);
                 DrawNotificationIdSection();
                 EditorGUILayout.Space(10f);
+                DrawNotificationTagSection();
+                EditorGUILayout.Space(10f);
                 DrawEntriesSection();
                 EditorGUILayout.EndScrollView();
             }
@@ -194,6 +196,45 @@ namespace RAXY.Notification.Editor
 
             EditorGUIUtility.PingObject(script);
             Selection.activeObject = script;
+        }
+
+        void DrawNotificationTagSection()
+        {
+            var settings = NotificationEditorSettings.instance;
+            var tags = settings.Tags;
+
+            RaxyHubGui.BeginCard();
+            EditorGUILayout.LabelField("Notification Tags", EditorStyles.boldLabel);
+            RaxyHubGui.DrawHint(
+                "Each tag must be a valid C# identifier. Generate C# writes NotificationTag constants with the same name and value. Leave a listener tag empty to match every tag, or type a value that is not in this list.");
+
+            var deleteIndex = -1;
+            for (var i = 0; i < tags.Count; i++)
+            {
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    tags[i] = EditorGUILayout.TextField(tags[i]);
+                    if (GUILayout.Button("X", GUILayout.Width(22f)))
+                        deleteIndex = i;
+                }
+            }
+
+            if (deleteIndex >= 0)
+            {
+                tags.RemoveAt(deleteIndex);
+                GUI.FocusControl(null);
+            }
+
+            if (GUI.changed)
+                settings.SaveSettings();
+
+            if (RaxyHubGui.SecondaryButton("Add Tag", 100f))
+            {
+                tags.Add(string.Empty);
+                settings.SaveSettings();
+            }
+
+            RaxyHubGui.EndCard();
         }
 
         void DrawEntriesSection()

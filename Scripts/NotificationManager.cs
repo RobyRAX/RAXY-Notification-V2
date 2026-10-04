@@ -237,7 +237,8 @@ namespace RAXY.Notification
             var live = new LiveNotification
             {
                 View = view,
-                Instance = spawned
+                Instance = spawned,
+                Request = request
             };
             lane.Live.Add(live);
 
@@ -297,6 +298,12 @@ namespace RAXY.Notification
 
             if (live.Instance != null)
                 Destroy(live.Instance);
+
+            var definition = lane.Definition;
+            NotificationEvents.RaiseDismissed(new NotificationDismissedInfo(
+                definition.Id,
+                definition.Behaviour,
+                live.Request));
 
             if (!lane.Pumping)
                 Pump(lane);
@@ -373,6 +380,7 @@ namespace RAXY.Notification
         {
             public NotificationView View;
             public GameObject Instance;
+            public NotificationRequest Request;
             public Coroutine Routine;
             public float Remaining;
             public bool Exiting;

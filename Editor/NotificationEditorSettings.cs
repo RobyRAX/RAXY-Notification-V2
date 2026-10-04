@@ -49,6 +49,12 @@ namespace RAXY.Notification.Editor
         string notificationIdScriptPath = string.Empty;
 
         [SerializeField]
+        string notificationTagScriptPath = string.Empty;
+
+        [SerializeField]
+        List<string> tags = new();
+
+        [SerializeField]
         List<NotificationEntry> entries = new();
 
         public string GeneratedFolder
@@ -77,6 +83,22 @@ namespace RAXY.Notification.Editor
         {
             get => notificationIdScriptPath ?? string.Empty;
             set => notificationIdScriptPath = value ?? string.Empty;
+        }
+
+        public string NotificationTagScriptPath
+        {
+            get => notificationTagScriptPath ?? string.Empty;
+            set => notificationTagScriptPath = value ?? string.Empty;
+        }
+
+        public List<string> Tags
+        {
+            get
+            {
+                if (tags == null)
+                    tags = new List<string>();
+                return tags;
+            }
         }
 
         public List<NotificationEntry> Entries

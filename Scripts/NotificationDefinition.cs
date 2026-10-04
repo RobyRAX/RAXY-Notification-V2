@@ -69,4 +69,8 @@ namespace RAXY.Notification
     public sealed class NotificationIdAttribute : PropertyAttribute
     {
     }
+
+    public sealed class NotificationTagAttribute : PropertyAttribute
+    {
+    }
 }

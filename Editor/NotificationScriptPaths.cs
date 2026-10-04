@@ -89,6 +89,35 @@ namespace RAXY.Notification.Editor
             return false;
         }
 
+        public static bool TryGetNotificationTagScriptPath(string namespaceName, out string assetPath)
+        {
+            assetPath = null;
+            var fullName = string.IsNullOrWhiteSpace(namespaceName)
+                ? "RAXY.Notification.NotificationTag"
+                : namespaceName.Trim() + ".NotificationTag";
+
+            var guids = AssetDatabase.FindAssets("NotificationTag t:MonoScript");
+            for (var i = 0; i < guids.Length; i++)
+            {
+                var path = AssetDatabase.GUIDToAssetPath(guids[i]);
+                var script = AssetDatabase.LoadAssetAtPath<MonoScript>(path);
+                if (script == null)
+                    continue;
+
+                var type = script.GetClass();
+                if (type == null || !string.Equals(type.Name, "NotificationTag", StringComparison.Ordinal))
+                    continue;
+
+                if (!string.Equals(type.FullName, fullName, StringComparison.Ordinal))
+                    continue;
+
+                assetPath = path;
+                return true;
+            }
+
+            return false;
+        }
+
         public static bool IsGeneratedScriptAtPath(string assetPath)
         {
             if (string.IsNullOrWhiteSpace(assetPath))
@@ -215,6 +244,41 @@ namespace RAXY.Notification.Editor
             }
 
             assetPath = generatedFolder + "/NotificationId.cs";
+            if (!ValidateWritable(assetPath, out message))
+                return false;
+
+            return true;
+        }
+
+        public static bool ResolveNotificationTagPath(
+            string storedPath,
+            string namespaceName,
+            string generatedFolder,
+            out string assetPath,
+            out string message)
+        {
+            assetPath = null;
+            message = null;
+
+            if (IsValidStoredPath(storedPath))
+            {
+                assetPath = NormalizeAssetPath(storedPath);
+                if (!ValidateWritable(assetPath, out message))
+                    return false;
+
+                return true;
+            }
+
+            if (TryGetNotificationTagScriptPath(namespaceName, out var foundPath))
+            {
+                assetPath = foundPath;
+                if (!ValidateWritable(assetPath, out message))
+                    return false;
+
+                return true;
+            }
+
+            assetPath = generatedFolder + "/NotificationTag.cs";
             if (!ValidateWritable(assetPath, out message))
                 return false;
 
