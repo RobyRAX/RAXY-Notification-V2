@@ -1,6 +1,6 @@
 {
   "name": "com.raxy.notification2",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "displayName": "RAXY Notification 2",
   "description": "Prefab-based notification manager with per-definition queues, fullscreen views, and a Project Hub generator.",
   "unity": "6000.0",

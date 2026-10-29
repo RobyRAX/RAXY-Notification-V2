@@ -6,8 +6,11 @@ namespace RAXY.Notification.Editor
 {
     public enum NotificationFieldKind
     {
-        Text,
-        Image
+        Text = 0,
+        Image = 1,
+        TextColor = 2,
+        ImageColor = 3,
+        ImageFill = 4
     }
 
     [Serializable]

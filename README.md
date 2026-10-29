@@ -16,6 +16,20 @@ RAXY Notification 2 shows notifications from a manager prefab. Each definition h
 3. Generate a Notification Manager prefab, add entries, then **Generate C#** and **Assign Entries**.
 4. Place the manager prefab in a scene and assign each definition's container or fullscreen view.
 
+## Hub Bindings
+
+Each entry can define bindings that become request properties and serialized fields on the generated view:
+
+| Binding | Request type | View field | Applied property |
+| --- | --- | --- | --- |
+| Text | `string` | `TextMeshProUGUI` | `text` |
+| Image | `Sprite` | `Image` | `sprite` |
+| Text Color | `Color` | `TextMeshProUGUI` | `color` |
+| Image Color | `Color` | `Image` | `color` |
+| Image Fill | `float` | `Image` | `fillAmount` |
+
+Set the Image component's **Image Type** to **Filled** to display Image Fill changes. Supply fill values in the `0..1` range. **Read from Project** recognizes generated view fields by their `Tmp`, `Img`, `ColorTmp`, `ColorImg`, and `FillImg` suffixes.
+
 ## Samples
 
 A Get Item toast, an Unlock Item fullscreen popup, and a demo scene ship as a Package Manager sample.

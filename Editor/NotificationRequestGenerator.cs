@@ -372,9 +372,12 @@ namespace RAXY.Notification.Editor
             var needsImage = false;
             for (var i = 0; i < entry.Fields.Count; i++)
             {
-                if (entry.Fields[i].Kind == NotificationFieldKind.Text)
+                if (entry.Fields[i].Kind == NotificationFieldKind.Text ||
+                    entry.Fields[i].Kind == NotificationFieldKind.TextColor)
                     needsText = true;
-                else if (entry.Fields[i].Kind == NotificationFieldKind.Image)
+                else if (entry.Fields[i].Kind == NotificationFieldKind.Image ||
+                         entry.Fields[i].Kind == NotificationFieldKind.ImageColor ||
+                         entry.Fields[i].Kind == NotificationFieldKind.ImageFill)
                     needsImage = true;
             }
 
@@ -392,7 +395,7 @@ namespace RAXY.Notification.Editor
                 : "NotificationView";
 
             builder.Append("namespace ").Append(namespaceName).Append("\n{\n");
-            builder.Append("    public class ").Append(entry.ViewClass).Append(" : ");
+            builder.Append("    public partial class ").Append(entry.ViewClass).Append(" : ");
             builder.Append(baseName).Append('<').Append(entry.RequestClass).Append(">\n");
             builder.Append("    {\n");
             for (var i = 0; i < entry.Fields.Count; i++)
@@ -401,7 +404,7 @@ namespace RAXY.Notification.Editor
                 var viewField = ViewFieldName(field);
                 builder.Append("        [SerializeField]\n");
                 builder.Append("        ");
-                builder.Append(field.Kind == NotificationFieldKind.Text ? "TextMeshProUGUI" : "Image");
+                builder.Append(ViewComponentType(field.Kind));
                 builder.Append(' ');
                 builder.Append(viewField);
                 builder.Append(";\n\n");
@@ -413,7 +416,7 @@ namespace RAXY.Notification.Editor
             {
                 var field = entry.Fields[i];
                 var viewField = ViewFieldName(field);
-                var member = field.Kind == NotificationFieldKind.Text ? "text" : "sprite";
+                var member = ViewMember(field.Kind);
                 builder.Append("            if (").Append(viewField).Append(" != null)\n");
                 builder.Append("                ").Append(viewField).Append('.').Append(member);
                 builder.Append(" = request.").Append(field.PropertyName).Append(";\n");
@@ -426,9 +429,33 @@ namespace RAXY.Notification.Editor
 
         static string ViewFieldName(EmittedField field)
         {
-            var suffix = field.Kind == NotificationFieldKind.Text ? "Tmp" : "Img";
+            var suffix = field.Kind switch
+            {
+                NotificationFieldKind.Text => "Tmp",
+                NotificationFieldKind.Image => "Img",
+                NotificationFieldKind.TextColor => "ColorTmp",
+                NotificationFieldKind.ImageColor => "ColorImg",
+                NotificationFieldKind.ImageFill => "FillImg",
+                _ => throw new ArgumentOutOfRangeException(nameof(field.Kind))
+            };
             return field.PropertyName + suffix;
         }
+
+        static string ViewComponentType(NotificationFieldKind kind) => kind switch
+        {
+            NotificationFieldKind.Text or NotificationFieldKind.TextColor => "TextMeshProUGUI",
+            NotificationFieldKind.Image or NotificationFieldKind.ImageColor or NotificationFieldKind.ImageFill => "Image",
+            _ => throw new ArgumentOutOfRangeException(nameof(kind))
+        };
+
+        static string ViewMember(NotificationFieldKind kind) => kind switch
+        {
+            NotificationFieldKind.Text => "text",
+            NotificationFieldKind.Image => "sprite",
+            NotificationFieldKind.TextColor or NotificationFieldKind.ImageColor => "color",
+            NotificationFieldKind.ImageFill => "fillAmount",
+            _ => throw new ArgumentOutOfRangeException(nameof(kind))
+        };
 
         static bool TryBuildFields(NotificationEntry entry, int entryIndex, out List<EmittedField> fields, out string message)
         {
@@ -474,6 +501,15 @@ namespace RAXY.Notification.Editor
                     return true;
                 case NotificationFieldKind.Image:
                     requestType = "UnityEngine.Sprite";
+                    message = null;
+                    return true;
+                case NotificationFieldKind.TextColor:
+                case NotificationFieldKind.ImageColor:
+                    requestType = "UnityEngine.Color";
+                    message = null;
+                    return true;
+                case NotificationFieldKind.ImageFill:
+                    requestType = "float";
                     message = null;
                     return true;
                 default:

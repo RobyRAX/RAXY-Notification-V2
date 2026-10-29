@@ -468,7 +468,31 @@ namespace RAXY.Notification.Editor
                 for (var i = 0; i < fields.Length; i++)
                 {
                     var field = fields[i];
-                    if (field.Name.EndsWith("Tmp", StringComparison.Ordinal) && field.FieldType.Name == "TextMeshProUGUI")
+                    if (field.Name.EndsWith("ColorTmp", StringComparison.Ordinal) && field.FieldType.Name == "TextMeshProUGUI")
+                    {
+                        bindings.Add(new NotificationFieldDefinition
+                        {
+                            fieldName = field.Name.Substring(0, field.Name.Length - "ColorTmp".Length),
+                            kind = NotificationFieldKind.TextColor
+                        });
+                    }
+                    else if (field.Name.EndsWith("ColorImg", StringComparison.Ordinal) && field.FieldType == typeof(Image))
+                    {
+                        bindings.Add(new NotificationFieldDefinition
+                        {
+                            fieldName = field.Name.Substring(0, field.Name.Length - "ColorImg".Length),
+                            kind = NotificationFieldKind.ImageColor
+                        });
+                    }
+                    else if (field.Name.EndsWith("FillImg", StringComparison.Ordinal) && field.FieldType == typeof(Image))
+                    {
+                        bindings.Add(new NotificationFieldDefinition
+                        {
+                            fieldName = field.Name.Substring(0, field.Name.Length - "FillImg".Length),
+                            kind = NotificationFieldKind.ImageFill
+                        });
+                    }
+                    else if (field.Name.EndsWith("Tmp", StringComparison.Ordinal) && field.FieldType.Name == "TextMeshProUGUI")
                     {
                         bindings.Add(new NotificationFieldDefinition
                         {
